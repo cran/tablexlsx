@@ -81,8 +81,6 @@ assert_named_list <- function(x) {
 #'
 #' @param x Object
 #'
-#' @importFrom methods allNames
-#'
 #' @noRd
 assert_named_list_in_list <- function(x) {
   ok <- sapply(x, function(y) {
@@ -91,5 +89,24 @@ assert_named_list_in_list <- function(x) {
 
   if (!all(ok)) {
     stop(substitute(x), " must be a list composed of one or more lists of which all elements must be named", call. = FALSE)
+  }
+}
+
+#' @name assert_named_list
+#'
+#' @param x Object
+#'
+#' @noRd
+assert_grouped <- function(x) {
+  if (is.data.frame(x)) {
+    ok <- isFALSE("groups" %in% names(attributes(x)))
+  } else {
+    ok <- !any(sapply(x, function(df) {
+      "groups" %in% names(attributes(df))
+    }))
+  }
+
+  if (!ok) {
+    stop(substitute(x), " must not be grouped", call. = FALSE)
   }
 }

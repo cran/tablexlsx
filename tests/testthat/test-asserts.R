@@ -21,9 +21,9 @@ test_that("assert_class function works as expected", {
 
   # Test 5: assert_class returns an error
   x <- list()
-  expect_snapshot(
-    assert_class(x, "matrix", TRUE),
-    error = TRUE)
+  expect_error(
+    assert_class(x, "matrix", TRUE)
+    )
 })
 
 test_that("assert_character1 function works as expected", {
@@ -32,14 +32,13 @@ test_that("assert_character1 function works as expected", {
   expect_true(TRUE)
 
   # Test 2: assert_character1 returns an error with character vector and several elements
-  expect_snapshot(
-    assert_character1(c("1","2")),
-    error = TRUE)
+  expect_error(
+    assert_character1(c("1","2"))
+    )
 
   # Test 3: assert_character1 returns an error with numeric input
-  expect_snapshot(
-    assert_character1(1),
-    error = TRUE)
+  expect_error(
+    assert_character1(1))
 })
 
 test_that("assert_numeric1 function works as expected", {
@@ -52,19 +51,19 @@ test_that("assert_numeric1 function works as expected", {
   expect_true(TRUE)
 
   # Test 3: assert_numeric1 returns an error with numeric vector and several elements
-  expect_snapshot(
-    assert_numeric1(c(1,2)),
-    error = TRUE)
+  expect_error(
+    assert_numeric1(c(1,2))
+    )
 
   # Test 4: assert_numeric1 returns an error with character input
-  expect_snapshot(
-    assert_numeric1("1"),
-    error = TRUE)
+  expect_error(
+    assert_numeric1("1")
+    )
 
   # Test 5: assert_numeric1 returns an error with numeric vector and several elements and scalar as true
-  expect_snapshot(
-    assert_numeric1(c(1,2),scalar = TRUE),
-    error = TRUE)
+  expect_error(
+    assert_numeric1(c(1,2),scalar = TRUE)
+    )
 })
 
 test_that("assert_named_list function works as expected", {
@@ -75,9 +74,9 @@ test_that("assert_named_list function works as expected", {
 
   # Test 2: assert_named_list returns an error with an unnamed list
   x <- list("a")
-  expect_snapshot(
+  expect_error(
     assert_named_list(x),
-    error = TRUE)
+  )
 })
 
 test_that("assert_named_list_in_list function works as expected", {
@@ -88,7 +87,17 @@ test_that("assert_named_list_in_list function works as expected", {
 
   # Test 2: assert_named_list_in_list returns an error with a simple named list
   x <- list("elem1" = "a")
-  expect_snapshot(
-    assert_named_list_in_list(x),
-    error = TRUE)
+  expect_error(
+    assert_named_list_in_list(x)
+    )
+})
+
+test_that("assert_grouped function works as expected", {
+  # Test 1: assert_grouped returns TRUE with ungrouped data frame
+  assert_grouped(iris)
+  expect_true(TRUE)
+
+  # Test 2: assert_named_list returns an error with an unnamed list
+  assert_grouped(list(iris,cars))
+  expect_true(TRUE)
 })

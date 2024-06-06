@@ -20,20 +20,21 @@
 #'   If omitted, no footnote2
 #' @param footnote3 list of footnote3 for each element of object
 #'   If omitted, no footnote3
-#' @param mergecol character vector that indicates the columns for which we want to merge the modalities
+#' @param mergecol list of character vectors that indicate the columns for which we want to merge the modalities
+#' @param bygroup list of character vectors indicating the names of the columns by which to group
+#' @param groupname list of booleans indicating whether the names of the grouping variables should be written
 #' @param path path to save excel file
 #' @param filename name for the excel file ("Export" by default)
+#' @param asTable logical indicating if data should be written as an Excel Table (FALSE by default)
 #' @param automaticopen logical indicating if excel file should open automatically (FALSE by default)
-#'
-#' @importFrom stats setNames
-#' @importFrom openxlsx addStyle saveWorkbook openXL mergeCells
-#' @importFrom magrittr "%>%"
 #'
 #' @examples
 #' # Simply export a data frame to an xlsx file
 #' # For more examples, see examples gallery :
 #' # https://ddotta.github.io/tablexlsx/articles/aa-examples.html
+#' \dontrun{
 #' toxlsx(object = iris, path = tempdir())
+#' }
 #'
 #' @return an excel file
 #' @export
@@ -46,26 +47,21 @@ toxlsx <- function(object,
                    footnote2 = list(),
                    footnote3 = list(),
                    mergecol = NULL,
+                   bygroup = list(),
+                   groupname = FALSE,
                    path,
                    filename = "Export",
+                   asTable = FALSE,
                    automaticopen = FALSE) {
+
+  if (isTRUE(asTable) & !is.null(mergecol)) {
+    stop("mergecol cannot be defined when asTable is TRUE")
+  }
 
   # check if object is a data frame or a list
   assert_class(object, c("data.frame", "list"))
-  # check if tosheet is a list
-  assert_class(tosheet, "list")
-  # check if title is a list
-  assert_class(title, "list")
-  # check if columnstyle is a list
-  assert_class(columnstyle, "list")
-  # check if columnstyle is a named list
-  assert_named_list(columnstyle)
-  # check if footnote1 is a list
-  assert_class(footnote1, "list")
-  # check if footnote2 is a list
-  assert_class(footnote2, "list")
-  # check if footnote3 is a list
-  assert_class(footnote3, "list")
+  # check if object is grouped or not
+  assert_grouped(object)
 
   # Code to make the function works with both %>% and |> operators
   parents <- lapply(sys.frames(), parent.env)
@@ -91,6 +87,31 @@ toxlsx <- function(object,
   } else {
     output_name <- deparse(object)
   }
+
+  tosheet <- if_atomic_to_list(tosheet, output_name)
+  title <- if_atomic_to_list(title, output_name)
+  footnote1 <- if_atomic_to_list(footnote1, output_name)
+  footnote2 <- if_atomic_to_list(footnote2, output_name)
+  footnote3 <- if_atomic_to_list(footnote3, output_name)
+  mergecol <- if_atomic_to_list(mergecol, output_name)
+  bygroup <- if_atomic_to_list(bygroup, output_name)
+  groupname <- if_atomic_to_list(groupname, output_name)
+
+  # check if tosheet is a list
+  assert_class(tosheet, "list")
+  # check if title is a list
+  assert_class(title, "list")
+  # check if columnstyle is a list
+  assert_class(columnstyle, "list")
+  # check if columnstyle is a named list
+  assert_named_list(columnstyle)
+  # check if footnote1 is a list
+  assert_class(footnote1, "list")
+  # check if footnote2 is a list
+  assert_class(footnote2, "list")
+  # check if footnote3 is a list
+  assert_class(footnote3, "list")
+
 
   # Initialize an empty list for output
   # and name the elements of the output list with output_name
@@ -118,6 +139,9 @@ toxlsx <- function(object,
     output[[df]][["footnote1"]] <- if (length(footnote1) == 0) "" else footnote1[[df]]
     output[[df]][["footnote2"]] <- if (length(footnote2) == 0) "" else footnote2[[df]]
     output[[df]][["footnote3"]] <- if (length(footnote3) == 0) "" else footnote3[[df]]
+    output[[df]][["mergecol"]] <- if (length(mergecol) == 0) character(0) else mergecol[[df]]
+    output[[df]][["bygroup"]] <- if (length(bygroup) == 0) character(0) else bygroup[[df]]
+    output[[df]][["groupname"]] <- if (length(groupname) == 0) logical(0) else groupname[[df]]
   }
 
   # Creation empty workbook
@@ -205,46 +229,12 @@ toxlsx <- function(object,
       HeightTableTitle = 2,
       TableFootnote1 = output[[df]][["footnote1"]],
       TableFootnote2 = output[[df]][["footnote2"]],
-      TableFootnote3 = output[[df]][["footnote3"]]
+      TableFootnote3 = output[[df]][["footnote3"]],
+      MergeCol = output[[df]][["mergecol"]],
+      ByGroup = output[[df]][["bygroup"]],
+      GroupName = output[[df]][["groupname"]],
+      asTable = asTable
     )
-
-    # If mergecol is filled in
-    if(!is.null(mergecol)) {
-
-      # loop on each column of mergecol
-      for (mycol in mergecol) {
-
-        # distinct_mergecol count the number of unique modalities for each column of mergecol
-        distinct_mergecol <- length(unique(get(df)[[mycol]]))
-
-        # loop on each modality of mycol
-        for (i in (1:distinct_mergecol)) {
-
-          mergeCells(wb = wb,
-                     sheet = output[[df]][["sheet"]],
-                     # here we add 1 because the table starts to be written from col 2 in workbook
-                     cols = which(names(get(df)) %in% mycol)+1,
-                     rows = convert_range_string(
-                       range_string = get_indices_of_identical_elements(get(df)[[mycol]])[i]
-                     ) + 3 # here we add 3 because the table starts to be written from line 3 in workbook
-          )
-
-        }
-
-        openxlsx::addStyle(
-          wb,
-          sheet = output[[df]][["sheet"]],
-          cols =  which(names(get(df)) %in% mycol)+1,
-          rows = convert_range_string(
-            get_indices_from_vector(get(df)[[mycol]])
-          )  + 3,
-          style = style$mergedcell
-        )
-
-      }
-
-
-    }
 
   }
 
@@ -257,6 +247,9 @@ toxlsx <- function(object,
     ),
     overwrite = TRUE
   )
+
+  Sys.sleep(0.01)
+  cli_alert_success("\nYour Excel file '{filename}.xlsx' is available in the folder '{path}'")
 
   # Open workbook automatically if automaticopen is TRUE
   if (isTRUE(automaticopen)) {

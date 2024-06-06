@@ -13,13 +13,14 @@
 #' @param TableFootnote1 : string for TableFootnote1
 #' @param TableFootnote2 : string for TableFootnote2
 #' @param TableFootnote3 : string for TableFootnote3
+#' @param MergeCol : character vector that indicates the columns for which to merge the modalities
+#' @param ByGroup character vector indicating the name of the columns by which to group
+#' @param GroupName boolean indicating whether the name of the grouping variable should be written
+#' @param asTable logical indicating if data should be written as an Excel Table (FALSE by default)
 #'
 #' @return excel wb object
 #'
-#' @importFrom openxlsx addWorksheet setColWidths setRowHeights writeData addStyle writeDataTable
 #' @export
-
-
 add_table <- function(
     Table,
     WbTitle,
@@ -29,9 +30,13 @@ add_table <- function(
     StartCol = 1,
     FormatList = list(),
     HeightTableTitle = 2,
-    TableFootnote1 = list(),
-    TableFootnote2 = list(),
-    TableFootnote3 = list()) {
+    TableFootnote1 = "",
+    TableFootnote2 = "",
+    TableFootnote3 = "",
+    MergeCol = NULL,
+    ByGroup = character(0),
+    GroupName = FALSE,
+    asTable = FALSE) {
 
   # Assert parameters
   assert_class(Table, "data.frame")
@@ -45,6 +50,10 @@ add_table <- function(
   assert_character1(TableFootnote1)
   assert_character1(TableFootnote2)
   assert_character1(TableFootnote3)
+
+  if (asTable & length(ByGroup) > 0L) {
+    stop("asTable cannot be TRUE if ByGroup is defined")
+  }
 
   # If the sheet does not exist in the Excel file, we create it; otherwise, we invoke it
   if (!(SheetTitle %in% names(WbTitle))) {
@@ -82,17 +91,38 @@ add_table <- function(
     style = style$title
   )
 
+  if (isTRUE(asTable)) {
+    writeDataFunction <- openxlsx::writeDataTable
+  } else {
+    writeDataFunction <- openxlsx::writeData
+  }
 
   # Add a table
-  openxlsx::writeDataTable(
-    wb = WbTitle,
-    sheet = mysheet,
-    x = Table,
-    startRow = StartRow + 2,
-    startCol = StartCol + 1,
-    rowNames = FALSE,
-    headerStyle = style$col_header
-  )
+  if (length(ByGroup) == 0L) {
+    writeDataFunction(
+      wb = WbTitle,
+      sheet = mysheet,
+      x = Table,
+      startRow = StartRow + 2,
+      startCol = StartCol + 1,
+      rowNames = FALSE,
+      headerStyle = style$col_header
+    )
+    lastrowtable <- StartRow + 2 + nrow(Table)
+  } else {
+    WbTitle <- writeDataByGroup(
+      wb = WbTitle,
+      sheet = mysheet,
+      x = Table,
+      startRow = StartRow + 2,
+      startCol = StartCol + 1,
+      rowNames = FALSE,
+      headerStyle = style$col_header,
+      group = ByGroup,
+      groupname = GroupName,
+    )
+    lastrowtable <- StartRow + 2 + nrow(Table) + nrow(unique(Table[ByGroup]))
+  }
 
   # Format of the table's columns
   sapply(seq_len(length(FormatList)), function(i) {
@@ -100,7 +130,7 @@ add_table <- function(
       WbTitle,
       sheet = mysheet,
       cols = i + StartCol,
-      rows = ((StartRow + 3):(StartRow + 2 + nrow(Table))),
+      rows = ((StartRow + 3):lastrowtable),
       style = FormatList[[i]]
     )
   })
@@ -109,36 +139,73 @@ add_table <- function(
   openxlsx::writeData(
     WbTitle,
     sheet = mysheet, x = TableFootnote1,
-    startCol = StartCol, startRow = StartRow + nrow(Table) + 4
+    startCol = StartCol, startRow = lastrowtable + 2
   )
   openxlsx::addStyle(
     WbTitle,
     sheet = mysheet,
-    cols = StartCol, rows = StartRow + nrow(Table) + 4,
+    cols = StartCol, rows = lastrowtable + 2,
     style = style$footnote1
   )
 
   openxlsx::writeData(
     WbTitle,
     sheet = mysheet, x = TableFootnote2,
-    startCol = StartCol, startRow = StartRow + nrow(Table) + 5
+    startCol = StartCol, startRow = lastrowtable + 3
   )
   openxlsx::addStyle(
     WbTitle,
     sheet = mysheet,
-    cols = StartCol, rows = StartRow + nrow(Table) + 5,
+    cols = StartCol, rows = lastrowtable + 3,
     style = style$footnote2
   )
 
   openxlsx::writeData(
     WbTitle,
     sheet = mysheet, x = TableFootnote3,
-    startCol = StartCol, startRow = StartRow + nrow(Table) + 6
+    startCol = StartCol, startRow = lastrowtable + 4
   )
   openxlsx::addStyle(
     WbTitle,
     sheet = mysheet,
-    cols = StartCol, rows = StartRow + nrow(Table) + 6,
+    cols = StartCol, rows = lastrowtable + 4,
     style = style$footnote3
   )
+
+  # If mergecol is filled in
+  if(!is.null(MergeCol)) {
+
+    # loop on each column of mergecol
+    for (mycol in MergeCol) {
+
+      # distinct_mergecol count the number of unique modalities for each column of mergecol
+      distinct_mergecol <- length(unique(Table[[mycol]]))
+
+      # loop on each modality of mycol
+      for (i in (1:distinct_mergecol)) {
+
+        mergeCells(wb = WbTitle,
+                   sheet = mysheet,
+                   # here we add 1 because the table starts to be written from col 2 in workbook
+                   cols = which(names(Table) %in% mycol)+1,
+                   rows = convert_range_string(
+                     range_string = get_indices_of_identical_elements(Table[[mycol]])[i]
+                   ) + StartRow + 2
+        )
+
+      }
+
+      openxlsx::addStyle(
+        WbTitle,
+        sheet = mysheet,
+        cols =  which(names(Table) %in% mycol)+1,
+        rows = convert_range_string(
+          get_indices_from_vector(Table[[mycol]])
+        )  + StartRow + 2,
+        style = style$mergedcell
+      )
+
+    }
+
+  }
 }
