@@ -6,16 +6,17 @@
 \usage{
 toxlsx(
   object,
+  path,
   tosheet = list(),
   title = list(),
   columnstyle = list(default = NULL),
+  theme = xls_theme_default(),
   footnote1 = list(),
   footnote2 = list(),
   footnote3 = list(),
   mergecol = NULL,
   bygroup = list(),
   groupname = FALSE,
-  path,
   filename = "Export",
   asTable = FALSE,
   automaticopen = FALSE
@@ -23,6 +24,8 @@ toxlsx(
 }
 \arguments{
 \item{object}{data.frame to be converted to excel}
+
+\item{path}{path to save excel file (either a directory name or a file name with full path)}
 
 \item{tosheet}{list of sheet names for each element of object.
 If omitted, sheets are named by default "Sheet 1", "Sheet 2"...}
@@ -32,6 +35,8 @@ If omitted, title takes the name of the dataframe in `object`}
 
 \item{columnstyle}{list of style for columns of each element of object
 Only useful if you want to customise the style of each column `}
+
+\item{theme}{styling theme, a named list of `openxlsx` Styles}
 
 \item{footnote1}{list of footnote1 for each element of object
 If omitted, no footnote1}
@@ -48,9 +53,7 @@ If omitted, no footnote3}
 
 \item{groupname}{list of booleans indicating whether the names of the grouping variables should be written}
 
-\item{path}{path to save excel file}
-
-\item{filename}{name for the excel file ("Export" by default)}
+\item{filename}{name for the excel file ("Export" by default). Ignored if `path` is a file name.}
 
 \item{asTable}{logical indicating if data should be written as an Excel Table (FALSE by default)}
 

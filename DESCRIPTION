@@ -1,7 +1,7 @@
 Package: tablexlsx
 Type: Package
 Title: Export Data Frames to Excel Workbook
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: 
     c(person(given = "Damien",
              family = "Dotta",
@@ -25,9 +25,9 @@ Config/testthat/edition: 3
 Imports: magrittr, methods, openxlsx, cli
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2024-06-06 09:33:09 UTC; damien.dotta
+Packaged: 2024-10-16 13:34:01 UTC; damien.dotta
 Author: Damien Dotta [aut, cre],
   Julien Blasco [aut]
 Maintainer: Damien Dotta <damien.dotta@live.fr>
 Repository: CRAN
-Date/Publication: 2024-06-06 09:50:02 UTC
+Date/Publication: 2024-10-16 13:50:02 UTC
